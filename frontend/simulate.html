@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulate Order — AI Smart Commerce</title>
+    <meta name="description" content="Simulate test orders for demo purposes">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <h1><i class="fas fa-satellite-dish mr-2"></i>AI Commerce</h1>
+            <p>Smart Communication Platform</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
+            <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
+            <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
+            <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
+            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+        </nav>
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <div class="pulse-dot bg-green-500"></div>
+                <span>System Online</span>
+            </div>
+        </div>
+    </aside>
+
+    <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden btn btn-outline p-2">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h2><i class="fas fa-play-circle mr-2 text-green-400"></i>Simulate Order</h2>
+            <p>Create a test order to demo the full communication pipeline</p>
+        </div>
+
+        <!-- Info Banner -->
+        <div class="glass-card p-4 mb-6 flex items-start gap-3" style="border-color:rgba(99,102,241,0.3)">
+            <i class="fas fa-info-circle text-indigo-400 mt-0.5"></i>
+            <div class="text-sm">
+                <p class="text-indigo-300 font-medium mb-1">How it works</p>
+                <p class="text-slate-400">This creates a test order and triggers the full communication pipeline:
+                    <strong class="text-slate-300">Order → Event → AI Voice Call → (Fallback) WhatsApp</strong>. Without
+                    API keys configured, calls and messages will be logged as "skipped".</p>
+            </div>
+        </div>
+
+        <!-- Simulate Form -->
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-bold mb-6"><i class="fas fa-flask mr-2 text-violet-400"></i>Order Details</h3>
+
+            <form id="simulate-form">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label class="form-label" for="sim-name">Customer Name</label>
+                        <input type="text" id="sim-name" class="form-input" placeholder="e.g. Rahul Sharma" required>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="sim-phone">Customer Phone</label>
+                        <input type="tel" id="sim-phone" class="form-input" placeholder="e.g. +919876543210" required>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="sim-platform">Platform</label>
+                        <select id="sim-platform" class="form-input form-select">
+                            <option value="shopify">Shopify</option>
+                            <option value="woocommerce">WooCommerce</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label" for="sim-event">Event Type</label>
+                        <select id="sim-event" class="form-input form-select">
+                            <option value="order_created">Order Created</option>
+                            <option value="delivery_failed">Delivery Failed</option>
+                            <option value="payment_pending">Payment Pending</option>
+                            <option value="order_returned">Order Returned</option>
+                            <option value="order_delivered">Order Delivered</option>
+                        </select>
+                    </div>
+
+                    <div class="md:col-span-2">
+                        <label class="form-label" for="sim-items">Order Items</label>
+                        <input type="text" id="sim-items" class="form-input"
+                            placeholder="e.g. Blue T-Shirt x2, Jeans x1" value="Sample Product x1">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center gap-4">
+                    <button type="submit" id="simulate-btn" class="btn btn-primary">
+                        <i class="fas fa-play"></i> Simulate Order
+                    </button>
+                    <span class="text-xs text-slate-500">This will create a real order in the database</span>
+                </div>
+            </form>
+        </div>
+
+        <!-- Result Area -->
+        <div id="simulate-result"></div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/simulate.js"></script>
+</body>
+
+</html>

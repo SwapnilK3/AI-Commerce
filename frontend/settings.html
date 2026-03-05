@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings — AI Smart Commerce</title>
+    <meta name="description" content="Configure API keys and platform settings">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <h1><i class="fas fa-satellite-dish mr-2"></i>AI Commerce</h1>
+            <p>Smart Communication Platform</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
+            <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
+            <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
+            <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
+            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+        </nav>
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <div class="pulse-dot bg-green-500"></div>
+                <span>System Online</span>
+            </div>
+        </div>
+    </aside>
+
+    <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden btn btn-outline p-2">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h2><i class="fas fa-cog mr-2 text-slate-400"></i>Settings</h2>
+            <p>Configure API keys and platform connections</p>
+        </div>
+
+        <!-- ENV Info -->
+        <div class="glass-card p-4 mb-6 flex items-start gap-3" style="border-color:rgba(245,158,11,0.3)">
+            <i class="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
+            <div class="text-sm">
+                <p class="text-yellow-300 font-medium mb-1">Configuration via .env file</p>
+                <p class="text-slate-400">All API keys are managed through the <code
+                        class="bg-slate-800 px-2 py-0.5 rounded text-yellow-300">.env</code> file in the project root.
+                    Edit the file and restart the server to apply changes.</p>
+            </div>
+        </div>
+
+        <form id="settings-form">
+            <!-- Twilio -->
+            <div class="glass-card p-6 mb-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold"><i class="fas fa-phone-alt mr-2 text-blue-400"></i>Twilio (Voice
+                        Calls)</h3>
+                    <span class="api-status"></span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="form-label">Account SID</label>
+                        <input type="text" class="form-input" placeholder="Set in .env → TWILIO_ACCOUNT_SID" disabled>
+                    </div>
+                    <div>
+                        <label class="form-label">Auth Token</label>
+                        <input type="password" class="form-input" placeholder="Set in .env → TWILIO_AUTH_TOKEN"
+                            disabled>
+                    </div>
+                    <div>
+                        <label class="form-label">Phone Number</label>
+                        <input type="text" class="form-input" placeholder="Set in .env → TWILIO_PHONE_NUMBER" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ElevenLabs -->
+            <div class="glass-card p-6 mb-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold"><i class="fas fa-microphone mr-2 text-violet-400"></i>ElevenLabs
+                        (Text-to-Speech)</h3>
+                    <span class="api-status"></span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">API Key</label>
+                        <input type="password" class="form-input" placeholder="Set in .env → ELEVENLABS_API_KEY"
+                            disabled>
+                    </div>
+                    <div>
+                        <label class="form-label">Voice ID</label>
+                        <input type="text" class="form-input" placeholder="Set in .env → ELEVENLABS_VOICE_ID" disabled>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp -->
+            <div class="glass-card p-6 mb-5">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold"><i class="fab fa-whatsapp mr-2 text-green-400"></i>Meta WhatsApp Cloud
+                        API</h3>
+                    <span class="api-status"></span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label">Access Token</label>
+                        <input type="password" class="form-input" placeholder="Set in .env → WHATSAPP_ACCESS_TOKEN"
+                            disabled>
+                    </div>
+                    <div>
+                        <label class="form-label">Phone Number ID</label>
+                        <input type="text" class="form-input" placeholder="Set in .env → WHATSAPP_PHONE_NUMBER_ID"
+                            disabled>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commerce Platforms -->
+            <div class="glass-card p-6 mb-5">
+                <h3 class="text-lg font-bold mb-4"><i class="fas fa-store mr-2 text-orange-400"></i>Commerce Platforms
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="form-label"><i class="fab fa-shopify mr-1 text-green-400"></i>Shopify Webhook
+                            Secret</label>
+                        <input type="password" class="form-input" placeholder="Set in .env → SHOPIFY_WEBHOOK_SECRET"
+                            disabled>
+                    </div>
+                    <div>
+                        <label class="form-label"><i class="fab fa-wordpress mr-1 text-purple-400"></i>WooCommerce
+                            Webhook Secret</label>
+                        <input type="password" class="form-input" placeholder="Set in .env → WOOCOMMERCE_WEBHOOK_SECRET"
+                            disabled>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Webhook URLs -->
+            <div class="glass-card p-6">
+                <h3 class="text-lg font-bold mb-4"><i class="fas fa-link mr-2 text-cyan-400"></i>Webhook Endpoints</h3>
+                <p class="text-sm text-slate-400 mb-4">Configure these URLs in your commerce platform's webhook
+                    settings:</p>
+                <div class="space-y-3">
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
+                        <span class="text-xs text-slate-500 uppercase font-bold w-24">Shopify</span>
+                        <code class="text-sm text-cyan-300 flex-1"
+                            id="shopify-webhook-url">http://your-domain.com/api/webhooks/shopify</code>
+                        <button type="button" onclick="copyUrl('shopify-webhook-url')"
+                            class="btn btn-outline text-xs px-3 py-1">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
+                        <span class="text-xs text-slate-500 uppercase font-bold w-24">WooCommerce</span>
+                        <code class="text-sm text-cyan-300 flex-1"
+                            id="woo-webhook-url">http://your-domain.com/api/webhooks/woocommerce</code>
+                        <button type="button" onclick="copyUrl('woo-webhook-url')"
+                            class="btn btn-outline text-xs px-3 py-1">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/settings.js"></script>
+    <script>
+        function copyUrl(id) {
+            const text = document.getElementById(id).textContent;
+            navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard!', 'success'));
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+sqlalchemy>=2.0.25
+pydantic>=2.6.0
+pydantic-settings>=2.1.0
+python-dotenv>=1.0.0
+httpx>=0.26.0
+python-multipart>=0.0.7
+
+# Production providers (optional — system works without these)
+twilio>=9.0.0
+# redis>=5.0.0  # Uncomment for Redis queue support
+# psycopg2-binary>=2.9.9  # Uncomment for PostgreSQL support
+
+# Open-source fallback providers (optional enhancements)
+# pyttsx3>=2.90  # Local TTS (offline)
+# openai-whisper>=20231117  # Local STT (offline)

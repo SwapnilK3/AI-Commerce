@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events — AI Smart Commerce</title>
+    <meta name="description" content="View all order events and triggers">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <h1><i class="fas fa-satellite-dish mr-2"></i>AI Commerce</h1>
+            <p>Smart Communication Platform</p>
+        </div>
+        <nav class="mt-6">
+            <a href="/" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+            <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
+            <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
+            <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
+            <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
+            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+        </nav>
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+                <div class="pulse-dot bg-green-500"></div>
+                <span>System Online</span>
+            </div>
+        </div>
+    </aside>
+
+    <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden btn btn-outline p-2">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h2><i class="fas fa-bolt mr-2 text-yellow-400"></i>Events</h2>
+            <p>Track all order events and communication triggers</p>
+        </div>
+
+        <!-- Filter -->
+        <div class="glass-card p-5 mb-6">
+            <div class="flex items-center gap-4">
+                <div>
+                    <select id="event-type-filter" class="form-input form-select">
+                        <option value="">All Event Types</option>
+                        <option value="order_created">Order Created</option>
+                        <option value="delivery_failed">Delivery Failed</option>
+                        <option value="payment_pending">Payment Pending</option>
+                        <option value="order_returned">Order Returned</option>
+                        <option value="order_delivered">Order Delivered</option>
+                    </select>
+                </div>
+                <span id="events-count" class="text-sm text-slate-400">0 events</span>
+            </div>
+        </div>
+
+        <!-- Events Table -->
+        <div class="glass-card p-6">
+            <div class="overflow-x-auto">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th style="width:40px"></th>
+                            <th>Event Type</th>
+                            <th>Customer</th>
+                            <th>Platform</th>
+                            <th>Timestamp</th>
+                        </tr>
+                    </thead>
+                    <tbody id="events-body">
+                        <tr>
+                            <td colspan="5">
+                                <div class="loading-overlay">
+                                    <div class="spinner"></div><span>Loading events...</span>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/events.js"></script>
+</body>
+
+</html>

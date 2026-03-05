@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — AI Smart Commerce</title>
+  <meta name="description" content="AI-powered communication platform for local commerce — Dashboard">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1><i class="fas fa-satellite-dish mr-2"></i>AI Commerce</h1>
+      <p>Smart Communication Platform</p>
+    </div>
+    <nav class="mt-6">
+      <a href="/" class="nav-item active"><i class="fas fa-chart-pie"></i> Dashboard</a>
+      <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
+      <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
+      <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
+      <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
+      <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+    </nav>
+    <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
+      <div class="flex items-center gap-2 text-xs text-slate-500">
+        <div class="pulse-dot bg-green-500"></div>
+        <span>System Online</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Mobile Toggle -->
+  <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden btn btn-outline p-2">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Header -->
+    <div class="page-header flex items-center justify-between">
+      <div>
+        <h2>Dashboard</h2>
+        <p>Real-time overview of your commerce communications</p>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-slate-400">
+        <i class="fas fa-clock"></i>
+        <span id="current-time"></span>
+      </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div class="glass-card stat-card orders p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="stat-icon orders"><i class="fas fa-shopping-bag"></i></div>
+          <span class="text-xs text-slate-500 uppercase font-semibold">Orders</span>
+        </div>
+        <div class="stat-value" id="stat-orders">0</div>
+        <p class="text-xs text-slate-500 mt-2">Total orders received</p>
+      </div>
+
+      <div class="glass-card stat-card events p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="stat-icon events"><i class="fas fa-bolt"></i></div>
+          <span class="text-xs text-slate-500 uppercase font-semibold">Events</span>
+        </div>
+        <div class="stat-value" id="stat-events">0</div>
+        <p class="text-xs text-slate-500 mt-2">Events processed</p>
+      </div>
+
+      <div class="glass-card stat-card calls p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="stat-icon calls"><i class="fas fa-phone-alt"></i></div>
+          <span class="text-xs text-slate-500 uppercase font-semibold">Voice Calls</span>
+        </div>
+        <div class="stat-value" id="stat-calls">0</div>
+        <p class="text-xs text-slate-500 mt-2">Calls initiated</p>
+      </div>
+
+      <div class="glass-card stat-card whatsapp p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div class="stat-icon whatsapp"><i class="fab fa-whatsapp"></i></div>
+          <span class="text-xs text-slate-500 uppercase font-semibold">WhatsApp</span>
+        </div>
+        <div class="stat-value" id="stat-whatsapp">0</div>
+        <p class="text-xs text-slate-500 mt-2">Messages sent</p>
+      </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Recent Orders -->
+      <div class="lg:col-span-2 glass-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-bold"><i class="fas fa-shopping-bag mr-2 text-indigo-400"></i>Recent Orders</h3>
+          <a href="/orders" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors">View All →</a>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Platform</th>
+                <th>Status</th>
+                <th>Items</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="recent-orders-body">
+              <tr>
+                <td colspan="6">
+                  <div class="loading-overlay">
+                    <div class="spinner"></div><span>Loading...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="glass-card p-6">
+        <div class="flex items-center justify-between mb-5">
+          <h3 class="text-lg font-bold"><i class="fas fa-stream mr-2 text-cyan-400"></i>Activity</h3>
+          <div class="pulse-dot bg-cyan-400"></div>
+        </div>
+        <div id="activity-feed">
+          <div class="loading-overlay">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div class="glass-card p-6">
+        <h3 class="text-lg font-bold mb-4"><i class="fas fa-project-diagram mr-2 text-violet-400"></i>System
+          Architecture</h3>
+        <div class="flex flex-wrap items-center justify-center gap-3 text-sm">
+          <div class="px-4 py-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20">
+            <i class="fab fa-shopify mr-1"></i> Shopify
+          </div>
+          <div class="px-4 py-2 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <i class="fab fa-wordpress mr-1"></i> WooCommerce
+          </div>
+          <i class="fas fa-arrow-right text-slate-600"></i>
+          <div class="px-4 py-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <i class="fas fa-cog mr-1"></i> Event Engine
+          </div>
+          <i class="fas fa-arrow-right text-slate-600"></i>
+          <div class="px-4 py-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <i class="fas fa-robot mr-1"></i> AI Engine
+          </div>
+          <i class="fas fa-arrow-right text-slate-600"></i>
+          <div class="flex flex-col gap-2">
+            <div class="px-4 py-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <i class="fas fa-phone-alt mr-1"></i> Voice
+            </div>
+            <div class="px-4 py-2 rounded-lg bg-green-500/10 text-green-400 border border-green-500/20">
+              <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Provider Status -->
+      <div class="glass-card p-6">
+        <h3 class="text-lg font-bold mb-4"><i class="fas fa-plug mr-2 text-amber-400"></i>Active Providers</h3>
+        <div id="provider-info">
+          <div class="loading-overlay" style="padding:20px">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/dashboard.js"></script>
+  <script>
+    // Update clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('current-time').textContent = now.toLocaleString('en-IN');
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+  </script>
+</body>
+
+</html>
