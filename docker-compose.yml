@@ -13,6 +13,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://commerce:commerce123@postgres:5432/commerce_db
       - REDIS_URL=redis://redis:6379/0
+      - WHATSAPP_WEB_SERVICE_URL=http://whatsapp:3001
     depends_on:
       postgres:
         condition: service_healthy
@@ -35,7 +36,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U commerce -d commerce_db"]
+      test: [ "CMD-SHELL", "pg_isready -U commerce -d commerce_db" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -50,6 +51,18 @@ services:
       - redisdata:/data
     restart: unless-stopped
 
+  # ── WhatsApp Web Service ─────────────────────────
+  whatsapp:
+    build:
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - wa_session:/app/session_data
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
+  wa_session:

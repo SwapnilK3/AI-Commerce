@@ -2,6 +2,8 @@
 __pycache__
 .venv
 backend/simulated_calls/*
-backend/simulated_whatsapp/*
+backend/simulated_messages/*
 *.db
 .idea/
+*logs.txt
+

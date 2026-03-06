@@ -9,8 +9,12 @@ python-multipart>=0.0.7
 
 # Production providers (optional — system works without these)
 twilio>=9.0.0
-# redis>=5.0.0  # Uncomment for Redis queue support
-# psycopg2-binary>=2.9.9  # Uncomment for PostgreSQL support
+redis>=5.0.0  # Uncomment for Redis queue support
+psycopg2-binary>=2.9.9  # Uncomment for PostgreSQL support
+
+# Auth
+passlib[bcrypt]>=1.7.4
+PyJWT>=2.8.0
 
 # Open-source fallback providers (optional enhancements)
 # pyttsx3>=2.90  # Local TTS (offline)

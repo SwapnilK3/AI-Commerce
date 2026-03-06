@@ -9,6 +9,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        if (!localStorage.getItem('auth_token')) {
+            window.location.replace('/login.html');
+        }
+    </script>
 </head>
 
 <body>
@@ -19,13 +24,19 @@
             <h1><i class="fas fa-satellite-dish mr-2"></i>AI Commerce</h1>
             <p>Smart Communication Platform</p>
         </div>
-        <nav class="mt-6">
-            <a href="/" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
-            <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
-            <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
-            <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
-            <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
-            <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+        <nav class="mt-6 flex flex-col h-full">
+            <div class="flex-grow">
+                <a href="/" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
+                <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
+                <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
+                <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
+                <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+            </div>
+            <div class="mt-auto pb-4">
+                <a href="#" id="logout-btn" class="nav-item text-red-400 hover:text-red-300 hover:bg-red-500/10"><i
+                        class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
         </nav>
         <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-700/50">
             <div class="flex items-center gap-2 text-xs text-slate-500">
@@ -52,7 +63,8 @@
                 <p class="text-indigo-300 font-medium mb-1">How it works</p>
                 <p class="text-slate-400">This creates a test order and triggers the full communication pipeline:
                     <strong class="text-slate-300">Order → Event → AI Voice Call → (Fallback) WhatsApp</strong>. Without
-                    API keys configured, calls and messages will be logged as "skipped".</p>
+                    API keys configured, calls and messages will be logged as "skipped".
+                </p>
             </div>
         </div>
 
@@ -84,10 +96,17 @@
                         <label class="form-label" for="sim-event">Event Type</label>
                         <select id="sim-event" class="form-input form-select">
                             <option value="order_created">Order Created</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="out_for_delivery">Out For Delivery</option>
                             <option value="delivery_failed">Delivery Failed</option>
-                            <option value="payment_pending">Payment Pending</option>
-                            <option value="order_returned">Order Returned</option>
+                            <option value="delivery_rescheduled">Delivery Rescheduled</option>
                             <option value="order_delivered">Order Delivered</option>
+                            <option value="payment_pending">Payment Pending</option>
+                            <option value="order_returned">Return Requested</option>
+                            <option value="refund_pickup_generated">Return Pickup Generated</option>
+                            <option value="pickup_done">Return Pickup Done</option>
+                            <option value="refund_requested">Refund Processed</option>
+                            <option value="order_cancellation_requested">Order Cancellation Requested</option>
                         </select>
                     </div>
 

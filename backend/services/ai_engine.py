@@ -87,23 +87,54 @@ def generate_whatsapp_message(customer_name: str, event_type: str) -> str:
 
 def detect_intent(transcript: str) -> str:
     """
-    Detect customer intent from speech transcript.
+    Detect customer intent from speech transcript or WhatsApp text.
     Returns: yes, no, reschedule, cancel, refund, exchange, help, unknown
+
+    NOTE: This is deliberately keyword-based so it works consistently
+    across both voice (Twilio) and WhatsApp webhook flows.
     """
     if not transcript:
         return "unknown"
 
     text = transcript.lower().strip()
 
+    # Normalise common punctuation / emojis that can appear in WhatsApp replies
+    replacements = {
+        "✅": "",
+        "✔": "",
+        "❌": "",
+        "👍": " yes ",
+        "👎": " no ",
+    }
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+
+    # Single-character quick replies
+    if text in {"y", "yy"}:
+        return "yes"
+    if text in {"n", "nn"}:
+        return "no"
+
     # Priority-ordered keyword matching
     intent_keywords = {
-        "cancel": ["cancel", "cancel order", "don't want", "stop"],
-        "reschedule": ["reschedule", "deliver tomorrow", "later", "next day", "another day"],
+        # Hard cancellation should win over softer intents
+        "cancel": [
+            "cancel", "cancel order", "don't want", "do not want",
+            "stop this order", "stop order",
+        ],
+        "reschedule": [
+            "reschedule", "re schedule", "deliver tomorrow", "tomorrow delivery",
+            "later", "next day", "another day", "change delivery date",
+            "reschedule pickup", "change pickup",
+        ],
         "refund": ["refund", "money back", "return money"],
         "exchange": ["exchange", "swap", "replace"],
         "help": ["help", "assistance", "support", "agent", "human"],
-        "yes": ["yes", "yeah", "yep", "sure", "okay", "ok", "confirm", "done", "rate"],
-        "no": ["no", "nope", "not now", "skip"],
+        "yes": [
+            "yes", "yeah", "yep", "sure", "okay", "ok",
+            "confirm", "confirmed", "done", "rate", "looks good",
+        ],
+        "no": ["no", "nope", "not now", "skip", "don't reschedule", "do not reschedule"],
     }
 
     for intent, keywords in intent_keywords.items():
@@ -127,3 +158,77 @@ def generate_response(intent: str, customer_name: str) -> str:
         "unknown": f"Sorry {customer_name}, I didn't understand that. Our team will follow up with you shortly.",
     }
     return responses.get(intent, responses["unknown"])
+
+
+def extract_intent_metadata(intent: str, text: str) -> dict:
+    """
+    Extract specific AI metadata from the customer's text based on their intent.
+    This provides rich data for the order timeline.
+    """
+    metadata = {}
+    text_lower = text.lower()
+    
+    if intent == "reschedule":
+        # Look for simple date keywords for the MVP
+        days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+        if "tomorrow" in text_lower:
+            metadata["requested_date"] = "Tomorrow"
+        elif "today" in text_lower:
+            metadata["requested_date"] = "Today"
+        elif "two days" in text_lower or "2 days" in text_lower:
+            metadata["requested_date"] = "In 2 days"
+        else:
+            for day in days:
+                if day in text_lower:
+                    metadata["requested_date"] = day.capitalize()
+                    break
+        
+        if "requested_date" not in metadata and len(text) > 10:
+             # Capture the raw context if we couldn't parse a keyword
+             metadata["context"] = text[:50] + "..." if len(text) > 50 else text
+
+    elif intent in ("cancel", "refund", "exchange"):
+        # For cancellations/refunds, the 'reason' can often be parsed if they say "because..."
+        if "because" in text_lower:
+            reason_part = text_lower.split("because")[-1].strip()
+            metadata["reason"] = reason_part[:50] + "..." if len(reason_part) > 50 else reason_part
+        elif len(text) > 15: # If they gave a longer explanation, just save the whole text as reason
+             metadata["reason"] = text[:60] + "..." if len(text) > 60 else text
+             
+    return metadata
+
+
+def generate_auto_reply(merchant_config: dict, message_text: str) -> dict:
+    """
+    Evaluates incoming Omnichannel messages.
+    Returns {"is_ai": True, "reply": "..."} if it can handle it.
+    Returns {"is_ai": False, "reply": None} if human intervention is needed.
+    """
+    text = message_text.lower().strip()
+    
+    # 1. Simple Q&A triggers
+    simple_qa = {
+        "where are you": "We are an online store, but our main office is in the city center. We deliver nationwide!",
+        "location": "We deliver everywhere! You can check our exact shipping zones on our website.",
+        "track": "You can track your order using the link sent to your email, or check the 'Orders' tab on our website.",
+        "track order": "You can track your order using the link sent to your email, or check the 'Orders' tab on our website.",
+        "how long": "Standard shipping usually takes 3-5 business days.",
+        "shipping time": "Orders are processed within 24 hours, and shipping takes 3-5 business days.",
+        "hello": "Hi there! How can we help you today?",
+        "hi": "Hello! How can we assist you?",
+    }
+    
+    for key, answer in simple_qa.items():
+        if key in text:
+            # Inject omnichannel context if available and relevant
+            if "website" in answer and merchant_config.get("shopify_store_url"):
+                answer = answer.replace("our website", f"our website ({merchant_config.get('shopify_store_url')})")
+            return {"is_ai": True, "reply": answer}
+            
+    # 2. Complex or Angry triggers
+    complex_triggers = ["broken", "refund", "scam", "wrong item", "damaged", "angry", "manager", "human"]
+    if any(trigger in text for trigger in complex_triggers):
+        return {"is_ai": False, "reply": None}
+        
+    # Default to requiring a human for anything unhandled
+    return {"is_ai": False, "reply": None}

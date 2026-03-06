@@ -4,7 +4,7 @@ Order Integration Service — normalizes webhook data and creates orders.
 import uuid
 import logging
 from sqlalchemy.orm import Session
-from models import Order
+from models import Order, Merchant
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +63,22 @@ def normalize_woocommerce_order(payload: dict) -> dict:
 
 
 def create_order(db: Session, order_data: dict) -> Order:
-    """Create and store a new order record."""
+    """Create and store a new order record.
+
+    Orders must always belong to a merchant. If `merchant_id` is not
+    provided in `order_data`, we fall back to the first merchant in the
+    database so that legacy/demo flows (like webhooks) continue to work.
+    """
+    merchant_id = order_data.get("merchant_id")
+    if not merchant_id:
+        # Fallback: use the first merchant as owner (demo-friendly)
+        merchant = db.query(Merchant).first()
+        if not merchant:
+            raise ValueError("No merchant configured — please register a merchant account first.")
+        merchant_id = merchant.id
+
     order = Order(
+        merchant_id=merchant_id,
         order_id=order_data.get("order_id", uuid.uuid4().hex[:8]),
         platform=order_data["platform"],
         customer_name=order_data["customer_name"],

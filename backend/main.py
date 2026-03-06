@@ -15,7 +15,7 @@ from database import create_tables
 from config import settings
 from providers.factory import init_providers, get_providers
 from queue_manager import create_queue, get_queue, set_worker_callback, process_queue_worker
-from routers import webhooks, dashboard, communications, simulate
+from routers import auth, webhooks, dashboard, communications, simulate, merchant_config, inbox
 
 # ── Logging ────────────────────────────────────────────────
 logging.basicConfig(
@@ -24,55 +24,36 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# ── Lifespan ───────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup and shutdown lifecycle."""
-    logger.info("=" * 60)
-    logger.info("  AI Smart Commerce Communication Platform")
-    logger.info("=" * 60)
-
-    # 1. Create database tables
-    logger.info("Creating database tables...")
+    # Initialize providers and queue on startup
+    logger.info("Initializing communication providers...")
+    get_providers()
+    
+    logger.info("Initializing background task queue...")
+    create_queue(settings.REDIS_URL)
+    
+    # Start the worker task
+    app.state.worker_task = asyncio.create_task(process_queue_worker())
+    # Background worker processes tasks if any are added to the queue
+    
+    logger.info("Creating database tables if needed...")
     create_tables()
-
-    # 2. Initialize providers (auto-detection)
-    providers = init_providers()
-
-    # 3. Initialize queue
-    queue = create_queue(settings.REDIS_URL)
-
-    # 4. Start background queue worker
-    worker_task = asyncio.create_task(process_queue_worker())
-
-    logger.info("=" * 60)
-    logger.info("  Platform is running!")
-    logger.info("  Dashboard: http://localhost:8000")
-    logger.info("  API docs:  http://localhost:8000/docs")
-    logger.info("")
-    logger.info("  Active Providers:")
-    for k, v in providers.summary().items():
-        logger.info("    %-12s → %s", k, v)
-    logger.info("  Queue: %s", queue.get_name())
-    logger.info("=" * 60)
-
+    
     yield
-
+    
     # Shutdown
-    worker_task.cancel()
-    logger.info("Platform shutdown complete")
+    if hasattr(app.state, "worker_task"):
+        app.state.worker_task.cancel()
 
-
-# ── App ────────────────────────────────────────────────────
 app = FastAPI(
-    title="AI Smart Commerce Communication",
-    description="AI-powered communication layer for local commerce platforms",
-    version="2.0.0",
-    lifespan=lifespan,
+    title="AI Smart Local Commerce Platform",
+    description="Backend API for managing events, omnichannel inbox, and communications.",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
-# ── CORS ───────────────────────────────────────────────────
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -80,12 +61,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 # ── Routers ────────────────────────────────────────────────
+app.include_router(auth.router)
 app.include_router(webhooks.router)
 app.include_router(dashboard.router)
 app.include_router(communications.router)
 app.include_router(simulate.router)
+app.include_router(merchant_config.router)
+app.include_router(inbox.router)
 
 
 # ── Provider info endpoint ─────────────────────────────────
@@ -130,6 +113,11 @@ async def serve_communications():
     return FileResponse(str(FRONTEND_DIR / "communications.html"))
 
 
+@app.get("/inbox")
+async def serve_inbox():
+    return FileResponse(str(FRONTEND_DIR / "inbox.html"))
+
+
 @app.get("/simulate")
 async def serve_simulate():
     return FileResponse(str(FRONTEND_DIR / "simulate.html"))
@@ -138,3 +126,15 @@ async def serve_simulate():
 @app.get("/settings")
 async def serve_settings():
     return FileResponse(str(FRONTEND_DIR / "settings.html"))
+
+
+@app.get("/login.html")
+async def serve_login():
+    """Serve login page for merchant authentication."""
+    return FileResponse(str(FRONTEND_DIR / "login.html"))
+
+
+@app.get("/register.html")
+async def serve_register():
+    """Serve registration page for new merchants."""
+    return FileResponse(str(FRONTEND_DIR / "register.html"))

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unified Inbox — AI Smart Commerce</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <script>
+        if (!localStorage.getItem('auth_token')) window.location.replace('/login.html');
+    </script>
+    <style>
+        /* Inbox Specific Styles */
+        .inbox-container {
+            height: calc(100vh - 140px);
+        }
+
+        .contact-list {
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            overflow-y: auto;
+        }
+
+        .contact-item {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .contact-item:hover,
+        .contact-item.active {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .chat-window {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chat-input-area {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .msg-bubble {
+            max-width: 75%;
+            padding: 10px 15px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            position: relative;
+        }
+
+        .msg-inbound {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.1);
+            border-bottom-left-radius: 2px;
+        }
+
+        .msg-outbound {
+            align-self: flex-end;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-bottom-right-radius: 2px;
+        }
+
+        .msg-ai {
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .ai-badge {
+            position: absolute;
+            bottom: -8px;
+            right: -8px;
+            background: #10b981;
+            color: #fff;
+            font-size: 0.6rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .human-req-badge {
+            background: rgba(2ef, 68, 68, 0.2);
+            color: #ef4444;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-logo">
+            <h1><i class="fas fa-satellite-dish mr-2"></i>AI Commerce</h1>
+            <p>Smart Communication Platform</p>
+        </div>
+        <nav class="mt-6 flex flex-col h-full">
+            <div class="flex-grow">
+                <a href="/" class="nav-item"><i class="fas fa-chart-pie"></i> Dashboard</a>
+                <a href="/orders" class="nav-item"><i class="fas fa-shopping-bag"></i> Orders</a>
+                <a href="/inbox" class="nav-item active"><i class="fas fa-inbox"></i> Inbox</a>
+                <a href="/events" class="nav-item"><i class="fas fa-bolt"></i> Events</a>
+                <a href="/communications" class="nav-item"><i class="fas fa-comments"></i> Communications</a>
+                <a href="/simulate" class="nav-item"><i class="fas fa-play-circle"></i> Simulate</a>
+                <a href="/settings" class="nav-item"><i class="fas fa-cog"></i> Settings</a>
+            </div>
+            <div class="mt-auto pb-4">
+                <a href="#" id="logout-btn" class="nav-item text-red-400 hover:text-red-300 hover:bg-red-500/10"><i
+                        class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Mobile Toggle -->
+    <button id="sidebar-toggle" class="fixed top-4 left-4 z-50 lg:hidden btn btn-outline p-2">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header mb-4">
+            <h2>Omnichannel Inbox</h2>
+            <p>Unified view of customer conversations across all platforms</p>
+        </div>
+
+        <!-- Dual Pane Inbox -->
+        <div class="glass-card flex inbox-container overflow-hidden">
+
+            <!-- Left Pane: Contacts List -->
+            <div class="w-1/3 min-w-[300px] max-w-[400px] contact-list flex flex-col">
+                <div class="p-4 border-b border-white/5">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" placeholder="Search conversations..."
+                            class="form-input w-full pl-9 py-2 text-sm bg-black/20">
+                    </div>
+                </div>
+
+                <div id="contacts-container" class="flex-grow overflow-y-auto">
+                    <div class="p-8 text-center text-slate-500">
+                        <div class="spinner inline-block mb-3"></div>
+                        <p>Loading messages...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Pane: Chat Window -->
+            <div class="flex-grow chat-window relative">
+                <!-- Empty State -->
+                <div id="chat-empty-state"
+                    class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-10 bg-[#0d1525]">
+                    <i class="fas fa-comments text-5xl mb-4 text-slate-700"></i>
+                    <p>Select a conversation to start messaging</p>
+                </div>
+
+                <!-- Chat Header -->
+                <div class="chat-header flex items-center justify-between invisible" id="chat-header">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 text-lg">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-slate-200" id="chat-contact-id">+1 234 567 8900</h4>
+                            <span class="text-xs text-slate-400 flex items-center gap-1" id="chat-channel-badge">
+                                <i class="fab fa-whatsapp text-green-400"></i> WhatsApp
+                            </span>
+                        </div>
+                    </div>
+                    <div>
+                        <button
+                            class="btn btn-outline text-xs px-3 py-1 bg-red-500/10 text-red-400 border-red-500/30 hidden"
+                            id="resolve-human-btn">
+                            <i class="fas fa-check-circle mr-1"></i> Resolve Human Flag
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div class="chat-messages" id="chat-messages">
+                    <!-- Messages inserted via JS -->
+                </div>
+
+                <!-- Input Area -->
+                <div class="chat-input-area invisible" id="chat-input-area">
+                    <form id="reply-form" class="flex gap-2">
+                        <input type="text" id="reply-text" class="form-input flex-grow bg-black/40"
+                            placeholder="Type a message to reply as human..." required autocomplete="off">
+                        <button type="submit" class="btn btn-primary px-6" id="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="/js/app.js"></script>
+    <script src="/js/inbox.js"></script>
+</body>
+
+</html>

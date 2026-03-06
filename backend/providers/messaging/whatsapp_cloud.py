@@ -12,12 +12,13 @@ WHATSAPP_API_URL = "https://graph.facebook.com/v18.0"
 
 
 class WhatsAppCloudProvider(MessagingProvider):
-    """Production messaging provider using Meta WhatsApp Cloud API."""
+    """Production messaging provider using Meta WhatsApp Cloud API with merchant config."""
 
-    def __init__(self):
-        self._token = settings.WHATSAPP_API_TOKEN or settings.WHATSAPP_ACCESS_TOKEN
-        self._phone_id = settings.WHATSAPP_PHONE_NUMBER_ID
-        logger.info("WhatsAppCloudProvider initialized")
+    def __init__(self, config: dict = None):
+        self.config = config or {}
+        self._token = self.config.get("whatsapp_api_token") or settings.WHATSAPP_API_TOKEN or settings.WHATSAPP_ACCESS_TOKEN
+        self._phone_id = self.config.get("whatsapp_phone_number_id") or settings.WHATSAPP_PHONE_NUMBER_ID
+        logger.info("WhatsAppCloudProvider initialized with keys from %s", "DB" if self.config else ".env")
 
     async def send_message(self, phone: str, message: str) -> MessageResult:
         try:

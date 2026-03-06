@@ -27,17 +27,23 @@ async function loadCommunications() {
             return;
         }
 
-        tbody.innerHTML = data.communications.map(c => `
-      <tr class="fade-in">
-        <td>${getCommTypeBadge(c.comm_type)}</td>
-        <td><strong>${c.customer_name || '—'}</strong></td>
-        <td class="text-sm text-slate-400">${c.customer_phone || '—'}</td>
-        <td>${getStatusBadge(c.status)}</td>
-        <td class="text-sm max-w-xs truncate" title="${escapeHtml(c.message)}">${truncate(c.message, 50)}</td>
-        <td class="text-sm text-indigo-300">${c.response || '—'}</td>
-        <td class="text-sm text-slate-400">${formatDateTime(c.timestamp)}</td>
-      </tr>
-    `).join('');
+        tbody.innerHTML = data.communications.map(c => {
+            let responseHtml = c.response || '—';
+            // If the response is a wa.me link, render as a clickable button
+            if (c.response && c.response.includes('wa.me')) {
+                responseHtml = `<a href="${escapeHtml(c.response)}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30 transition-colors"><i class="fab fa-whatsapp"></i> Open WhatsApp</a>`;
+            }
+            return `
+          <tr class="fade-in">
+            <td>${getCommTypeBadge(c.comm_type)}</td>
+            <td><strong>${c.customer_name || '—'}</strong></td>
+            <td class="text-sm text-slate-400">${c.customer_phone || '—'}</td>
+            <td>${getStatusBadge(c.status)}</td>
+            <td class="text-sm max-w-xs truncate" title="${escapeHtml(c.message)}">${truncate(c.message, 50)}</td>
+            <td class="text-sm text-indigo-300">${responseHtml}</td>
+            <td class="text-sm text-slate-400">${formatDateTime(c.timestamp)}</td>
+          </tr>`;
+        }).join('');
     } catch (err) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state text-red-400"><i class="fas fa-exclamation-triangle"></i><p>Failed to load communications</p></div></td></tr>`;
         showToast('Failed to load communications', 'error');

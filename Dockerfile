@@ -2,16 +2,16 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies (cached layer)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better layer caching
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy ONLY requirements first — this layer is cached unless requirements.txt changes
+COPY backend/requirements.txt ./requirements.txt
+RUN pip install --cache-dir /root/.cache/pip -r requirements.txt
 
-# Copy backend code
+# Copy backend code (changes here won't re-trigger pip install)
 COPY backend/ ./backend/
 
 # Copy frontend code

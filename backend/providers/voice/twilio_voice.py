@@ -9,12 +9,18 @@ logger = logging.getLogger(__name__)
 
 
 class TwilioVoiceProvider(VoiceProvider):
-    """Production voice call provider using Twilio."""
+    """Production voice call provider using Twilio with merchant-specific config."""
 
-    def __init__(self):
+    def __init__(self, config: dict = None):
+        self.config = config or {}
+        # Use merchant config if provided, otherwise fallback to global .env for backward compatibility
+        self.account_sid = self.config.get("twilio_account_sid") or settings.TWILIO_ACCOUNT_SID
+        self.auth_token = self.config.get("twilio_auth_token") or settings.TWILIO_AUTH_TOKEN
+        self.phone_number = self.config.get("twilio_phone_number") or settings.TWILIO_PHONE_NUMBER
+        
         from twilio.rest import Client
-        self._client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-        logger.info("TwilioVoiceProvider initialized")
+        self._client = Client(self.account_sid, self.auth_token)
+        logger.info("TwilioVoiceProvider initialized with keys from %s", "DB" if self.config else ".env")
 
     async def make_call(self, phone: str, message: str, callback_url: str = "") -> CallResult:
         try:
@@ -35,7 +41,7 @@ class TwilioVoiceProvider(VoiceProvider):
 
             call = self._client.calls.create(
                 to=phone,
-                from_=settings.TWILIO_PHONE_NUMBER,
+                from_=self.phone_number,
                 twiml=twiml,
                 status_callback=f"{base_url}/api/communications/call-status",
                 status_callback_method="POST",

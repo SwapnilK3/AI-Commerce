@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     WHATSAPP_ACCESS_TOKEN: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
 
+    # ── WhatsApp Web Service (session-based) ──────
+    WHATSAPP_WEB_SERVICE_URL: str = "http://localhost:3001"
+
     # ── Shopify ────────────────────────────────────
     SHOPIFY_WEBHOOK_SECRET: str = ""
 

@@ -1,0 +1,11 @@
+node_modules
+__pycache__
+*.pyc
+.git
+.env.local
+simulated_calls
+simulated_messages
+*.db
+.gemini
+wa_session
+session_data

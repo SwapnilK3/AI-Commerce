@@ -56,9 +56,9 @@ async def call_status_callback(
 
         # If call failed, trigger messaging fallback via provider
         if mapped_status == "failed":
-            providers = get_providers()
             order = comm.order
             if order:
+                providers = get_providers(order.merchant)
                 from services.ai_engine import generate_whatsapp_message
                 event_type = "order_created"
                 if order.events:

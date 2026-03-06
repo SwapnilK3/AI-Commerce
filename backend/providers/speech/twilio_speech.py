@@ -12,16 +12,20 @@ logger = logging.getLogger(__name__)
 
 class TwilioSpeechProvider(SpeechProvider):
     """
-    Production speech provider.
+    Production speech provider with merchant-specific config.
     TTS: ElevenLabs (high quality) with Twilio Polly fallback.
     STT: Twilio built-in speech recognition.
     Intent: Keyword matching (upgradeable to LLM).
     """
 
-    def __init__(self):
+    def __init__(self, config: dict = None):
+        self.config = config or {}
+        self.elevenlabs_key = self.config.get("elevenlabs_api_key") or settings.ELEVENLABS_API_KEY
+        self.elevenlabs_voice_id = self.config.get("elevenlabs_voice_id") or settings.ELEVENLABS_VOICE_ID
+
         self._has_elevenlabs = bool(
-            settings.ELEVENLABS_API_KEY
-            and settings.ELEVENLABS_API_KEY != "your_elevenlabs_api_key"
+            self.elevenlabs_key
+            and self.elevenlabs_key != "your_elevenlabs_api_key"
         )
         logger.info(
             "TwilioSpeechProvider initialized (ElevenLabs: %s)",
@@ -36,9 +40,9 @@ class TwilioSpeechProvider(SpeechProvider):
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"https://api.elevenlabs.io/v1/text-to-speech/{settings.ELEVENLABS_VOICE_ID}",
+                    f"https://api.elevenlabs.io/v1/text-to-speech/{self.elevenlabs_voice_id}",
                     headers={
-                        "xi-api-key": settings.ELEVENLABS_API_KEY,
+                        "xi-api-key": self.elevenlabs_key,
                         "Content-Type": "application/json",
                     },
                     json={
