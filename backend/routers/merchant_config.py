@@ -5,11 +5,21 @@ Stored as a JSON file for simplicity (no extra DB table needed).
 import json
 import logging
 from pathlib import Path
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
+import httpx
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/config", tags=["Configuration"])
+
+# Shared async HTTP client for proxying to WhatsApp Web service
+_wa_http_client: httpx.AsyncClient | None = None
+
+def _get_wa_client() -> httpx.AsyncClient:
+    global _wa_http_client
+    if _wa_http_client is None or _wa_http_client.is_closed:
+        _wa_http_client = httpx.AsyncClient(timeout=httpx.Timeout(connect=3.0, read=10.0, write=5.0, pool=5.0))
+    return _wa_http_client
 
 # Simple JSON file store for merchant config
 CONFIG_FILE = Path(__file__).resolve().parent.parent / "merchant_config.json"
@@ -78,7 +88,6 @@ class MerchantConfig(BaseModel):
 
 # ── Endpoints ──────────────────────────────────────────────
 
-from fastapi import Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from auth import get_current_merchant
@@ -112,11 +121,22 @@ def save_merchant_config(
     """Save merchant configuration (keys, business name, etc.) to DB."""
     data = config.model_dump()
     
-    # Also save to local JSON file for backward compatibility/debugging if needed
+    # Keep the global JSON file for backward compatibility
     _save_config(data)
     
-    # Save to the actual requested Database location (serialize to JSON string)
+    # Persist to the Merchant DB record
     current_merchant.provider_config = json.dumps(data)
+
+    # Keep Merchant.whatsapp_number in sync so all parts of the system see it
+    if data.get("merchant_whatsapp"):
+        current_merchant.whatsapp_number = data["merchant_whatsapp"]
+
+    # Keep business/merchant name in sync too
+    if data.get("business_name"):
+        current_merchant.business_name = data["business_name"]
+    if data.get("merchant_name"):
+        current_merchant.merchant_name = data["merchant_name"]
+
     db.commit()
     db.refresh(current_merchant)
     
@@ -127,19 +147,40 @@ def save_merchant_config(
     return {"status": "saved", "config": data}
 
 
+@router.get("/merchant/webhook-urls")
+def get_webhook_urls(
+    request: Request,
+    current_merchant: Merchant = Depends(get_current_merchant)
+):
+    """Return the unique per-merchant webhook URLs to register in Shopify/WooCommerce."""
+    from config import settings
+    # Prefer APP_BASE_URL if it's a real external address (not localhost)
+    configured = settings.APP_BASE_URL.rstrip("/")
+    if configured and "localhost" not in configured and "127.0.0.1" not in configured:
+        base = configured
+    else:
+        # Derive from HTTP request so the live public IP/domain is shown automatically
+        base = str(request.base_url).rstrip("/")
+    mid = current_merchant.id
+    return {
+        "shopify": f"{base}/api/webhooks/shopify/{mid}",
+        "woocommerce": f"{base}/api/webhooks/woocommerce/{mid}",
+        "whatsapp_incoming": f"{base}/api/webhooks/whatsapp-incoming?merchant_id={mid}",
+    }
+
+
 # ── WhatsApp Web Service Proxy ─────────────────────────────
 
 @router.get("/whatsapp-web/status")
 async def whatsapp_web_status(current_merchant: Merchant = Depends(get_current_merchant)):
     """Proxy to WhatsApp Web service — get connection status."""
-    import httpx
     from config import settings
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{settings.WHATSAPP_WEB_SERVICE_URL}/status?merchant_id={current_merchant.id}", timeout=3.0
-            )
-            return resp.json()
+        resp = await _get_wa_client().get(
+            f"{settings.WHATSAPP_WEB_SERVICE_URL}/status",
+            params={"merchant_id": current_merchant.id},
+        )
+        return resp.json()
     except Exception as e:
         return {"connected": False, "error": str(e), "service_available": False}
 
@@ -147,14 +188,13 @@ async def whatsapp_web_status(current_merchant: Merchant = Depends(get_current_m
 @router.get("/whatsapp-web/qr")
 async def whatsapp_web_qr(current_merchant: Merchant = Depends(get_current_merchant)):
     """Proxy to WhatsApp Web service — get QR code for linking."""
-    import httpx
     from config import settings
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{settings.WHATSAPP_WEB_SERVICE_URL}/qr?merchant_id={current_merchant.id}", timeout=5.0
-            )
-            return resp.json()
+        resp = await _get_wa_client().get(
+            f"{settings.WHATSAPP_WEB_SERVICE_URL}/qr",
+            params={"merchant_id": current_merchant.id},
+        )
+        return resp.json()
     except Exception as e:
         return {"connected": False, "qr": None, "error": str(e)}
 
@@ -162,15 +202,12 @@ async def whatsapp_web_qr(current_merchant: Merchant = Depends(get_current_merch
 @router.post("/whatsapp-web/disconnect")
 async def whatsapp_web_disconnect(current_merchant: Merchant = Depends(get_current_merchant)):
     """Proxy to WhatsApp Web service — disconnect and clear session."""
-    import httpx
     from config import settings
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{settings.WHATSAPP_WEB_SERVICE_URL}/disconnect",
-                json={"merchant_id": current_merchant.id}, 
-                timeout=5.0
-            )
-            return resp.json()
+        resp = await _get_wa_client().post(
+            f"{settings.WHATSAPP_WEB_SERVICE_URL}/disconnect",
+            json={"merchant_id": current_merchant.id},
+        )
+        return resp.json()
     except Exception as e:
         return {"error": str(e)}

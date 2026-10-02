@@ -84,13 +84,13 @@ def create_queue(redis_url: str = "") -> TaskQueue:
     """Create task queue — Redis if available, in-memory fallback."""
     global _queue
 
-    if redis_url and redis_url != "":
+    if redis_url:
         try:
             _queue = RedisQueue(redis_url)
             logger.info("✓ Queue: Using Redis")
             return _queue
         except Exception as e:
-            logger.warning("Redis connection failed (%s), falling back to in-memory", str(e))
+            logger.warning("Redis init failed (%s), falling back to in-memory", str(e))
 
     _queue = InMemoryQueue()
     logger.info("⟳ Queue: Using In-Memory (fallback)")
@@ -129,5 +129,5 @@ async def process_queue_worker():
             except Exception as e:
                 logger.error("Queue worker error processing task: %s", str(e))
         else:
-            # No tasks, wait briefly
-            await asyncio.sleep(0.5)
+            # No tasks — short sleep to keep CPU low but stay responsive
+            await asyncio.sleep(0.1)

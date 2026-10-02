@@ -7,12 +7,46 @@ document.addEventListener('DOMContentLoaded', () => {
     loadMerchantConfig();
     loadProviderStatus();
     loadWhatsAppWebStatus();
+    loadWebhookUrls();
 
     document.getElementById('merchant-form')?.addEventListener('submit', saveMerchantConfig);
 
     // Poll WhatsApp Web status every 5 seconds (for QR updates)
     waPollingInterval = setInterval(loadWhatsAppWebStatus, 5000);
 });
+
+// ── Webhook URLs ─────────────────────────────────────────
+
+async function loadWebhookUrls() {
+    const container = document.getElementById('webhook-urls-container');
+    if (!container) return;
+    try {
+        const urls = await fetchAPI('/api/config/merchant/webhook-urls');
+        const rows = [
+            { label: 'Shopify', icon: 'fab fa-shopify text-green-400', id: 'wh-shopify', url: urls.shopify },
+            { label: 'WooCommerce', icon: 'fab fa-wordpress text-purple-400', id: 'wh-woo', url: urls.woocommerce },
+            { label: 'WhatsApp In', icon: 'fab fa-whatsapp text-green-400', id: 'wh-wa', url: urls.whatsapp_incoming },
+        ];
+        container.innerHTML = rows.map(r => `
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
+                <span class="text-xs text-slate-500 uppercase font-bold w-28 flex items-center gap-1">
+                    <i class="${r.icon}"></i> ${r.label}
+                </span>
+                <code class="text-sm text-cyan-300 flex-1 break-all" id="${r.id}">${r.url}</code>
+                <button type="button" onclick="copyUrlText('${r.id}')"
+                    class="btn btn-outline text-xs px-3 py-1 flex-shrink-0">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>`).join('');
+    } catch (err) {
+        if (container) container.innerHTML = `<p class="text-xs text-red-400">Could not load webhook URLs — make sure you are logged in.</p>`;
+    }
+}
+
+function copyUrlText(id) {
+    const text = document.getElementById(id)?.textContent;
+    if (text) navigator.clipboard.writeText(text).then(() => showToast('Copied!', 'success'));
+}
 
 // ── WhatsApp Web Session ─────────────────────────────────
 
@@ -150,8 +184,9 @@ async function saveMerchantConfig(e) {
         });
         showToast('Merchant settings saved!', 'success');
 
-        // Force reload of status chips
+        // Force reload of status chips and webhook URLs
         setTimeout(loadProviderStatus, 1000);
+        setTimeout(loadWebhookUrls, 500);
     } catch (err) {
         showToast('Failed to save: ' + err.message, 'error');
     } finally {

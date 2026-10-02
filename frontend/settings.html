@@ -203,28 +203,10 @@
 
             <!-- Webhook URLs -->
             <div class="glass-card p-6">
-                <h3 class="text-lg font-bold mb-4"><i class="fas fa-link mr-2 text-cyan-400"></i>Webhook Endpoints</h3>
-                <p class="text-sm text-slate-400 mb-4">Configure these URLs in your commerce platform's webhook
-                    settings:</p>
-                <div class="space-y-3">
-                    <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
-                        <span class="text-xs text-slate-500 uppercase font-bold w-24">Shopify</span>
-                        <code class="text-sm text-cyan-300 flex-1"
-                            id="shopify-webhook-url">http://your-domain.com/api/webhooks/shopify</code>
-                        <button type="button" onclick="copyUrl('shopify-webhook-url')"
-                            class="btn btn-outline text-xs px-3 py-1">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
-                    <div class="flex items-center gap-3 p-3 rounded-lg bg-slate-800/50">
-                        <span class="text-xs text-slate-500 uppercase font-bold w-24">WooCommerce</span>
-                        <code class="text-sm text-cyan-300 flex-1"
-                            id="woo-webhook-url">http://your-domain.com/api/webhooks/woocommerce</code>
-                        <button type="button" onclick="copyUrl('woo-webhook-url')"
-                            class="btn btn-outline text-xs px-3 py-1">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                    </div>
+                <h3 class="text-lg font-bold mb-2"><i class="fas fa-link mr-2 text-cyan-400"></i>Your Webhook Endpoints</h3>
+                <p class="text-sm text-slate-400 mb-4">Copy these <strong>unique URLs</strong> into your store's webhook settings. Each URL is tied to your merchant account so events route directly to you.</p>
+                <div class="space-y-3" id="webhook-urls-container">
+                    <div class="text-xs text-slate-500 flex items-center gap-2"><div class="spinner" style="width:12px;height:12px;border-width:2px"></div> Loading your webhook URLs...</div>
                 </div>
             </div>
         </form>

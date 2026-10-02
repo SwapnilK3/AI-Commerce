@@ -60,7 +60,10 @@ def create_messaging_provider(config: dict, merchant_id=None) -> MessagingProvid
     else:
         from providers.messaging.local_messaging import LocalMessagingProvider
         logger.info("\u27f3 Messaging: Using Local Simulation (fallback config detected)")
-        return LocalMessagingProvider(merchant_id=merchant_id)
+        return LocalMessagingProvider(
+            merchant_id=merchant_id,
+            merchant_whatsapp=config.get("merchant_whatsapp", ""),
+        )
 
 
 def create_speech_provider(config: dict) -> SpeechProvider:
@@ -132,17 +135,17 @@ def clear_provider_cache(merchant_id: int):
 
 
 def init_providers(merchant_id: int, config: dict) -> Providers:
-    """Initialize all providers. Voice and Speech use global Env. Messaging uses Merchant config."""
+    """Initialize all providers using merchant config — falls back to .env only if merchant has no keys."""
     logger.info("═" * 50)
     logger.info(f"Initializing providers for Merchant {merchant_id}...")
     logger.info("═" * 50)
 
-    # Voice and Speech use empty dict so they fall back to the env
+    # All providers now receive the merchant config so they can use per-merchant keys
     providers = Providers(
         merchant_id=merchant_id,
-        voice=create_voice_provider({}), 
+        voice=create_voice_provider(config),
         messaging=create_messaging_provider(config, merchant_id=merchant_id),
-        speech=create_speech_provider({}),
+        speech=create_speech_provider(config),
     )
 
     logger.info("═" * 50)

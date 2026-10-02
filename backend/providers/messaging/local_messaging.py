@@ -21,13 +21,15 @@ logger = logging.getLogger(__name__)
 
 SIMULATED_DIR = Path(__file__).resolve().parent.parent.parent / "simulated_messages"
 
+# Shared async client — reused across all calls to avoid TCP setup overhead per message
+_http_client: httpx.AsyncClient | None = None
 
-def _get_merchant_whatsapp() -> str:
-    try:
-        from routers.merchant_config import get_merchant_whatsapp
-        return get_merchant_whatsapp()
-    except Exception:
-        return ""
+
+def _get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=httpx.Timeout(connect=3.0, read=15.0, write=5.0, pool=5.0))
+    return _http_client
 
 
 class LocalMessagingProvider(MessagingProvider):
@@ -38,12 +40,14 @@ class LocalMessagingProvider(MessagingProvider):
     Always provides a wa.me link in the result for the UI.
     """
 
-    def __init__(self, merchant_id=None):
+    def __init__(self, merchant_id=None, merchant_whatsapp: str = ""):
         SIMULATED_DIR.mkdir(parents=True, exist_ok=True)
         self._wa_service_url = settings.WHATSAPP_WEB_SERVICE_URL.rstrip("/")
         self._merchant_id = str(merchant_id) if merchant_id else "1"
+        self._merchant_whatsapp = merchant_whatsapp  # Per-merchant WhatsApp number from their config
         logger.info(
-            "LocalMessagingProvider initialized (WA Web: %s, Merchant: %s)", self._wa_service_url, self._merchant_id
+            "LocalMessagingProvider initialized (WA Web: %s, Merchant: %s, WA#: %s)",
+            self._wa_service_url, self._merchant_id, self._merchant_whatsapp or "not set"
         )
 
     def _generate_whatsapp_link(self, phone: str, message: str) -> str:
@@ -55,14 +59,13 @@ class LocalMessagingProvider(MessagingProvider):
     async def _check_wa_web_connected(self) -> bool:
         """Check if WhatsApp Web service is connected."""
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(
-                    f"{self._wa_service_url}/status",
-                    params={"merchant_id": self._merchant_id},
-                    timeout=3.0
-                )
-                if resp.status_code == 200:
-                    return resp.json().get("connected", False)
+            client = _get_http_client()
+            resp = await client.get(
+                f"{self._wa_service_url}/status",
+                params={"merchant_id": self._merchant_id},
+            )
+            if resp.status_code == 200:
+                return resp.json().get("connected", False)
         except Exception:
             pass
         return False
@@ -70,13 +73,12 @@ class LocalMessagingProvider(MessagingProvider):
     async def _try_send_via_wa_web(self, phone: str, message: str) -> bool:
         """Try to send via WhatsApp Web. Returns True if successful."""
         try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(
-                    f"{self._wa_service_url}/send",
-                    json={"phone": phone, "message": message, "merchant_id": self._merchant_id},
-                    timeout=15.0,
-                )
-                if resp.status_code == 200:
+            client = _get_http_client()
+            resp = await client.post(
+                f"{self._wa_service_url}/send",
+                json={"phone": phone, "message": message, "merchant_id": self._merchant_id},
+            )
+            if resp.status_code == 200:
                     data = resp.json()
                     if data.get("success"):
                         logger.info("WhatsApp Web message sent to %s", phone)
@@ -87,7 +89,7 @@ class LocalMessagingProvider(MessagingProvider):
 
     async def send_message(self, phone: str, message: str) -> MessageResult:
         msg_id = f"WALINK-{uuid.uuid4().hex[:10].upper()}"
-        merchant_wa = _get_merchant_whatsapp()
+        merchant_wa = self._merchant_whatsapp
 
         # Always generate the deep link for the UI
         wa_link = self._generate_whatsapp_link(phone, message)

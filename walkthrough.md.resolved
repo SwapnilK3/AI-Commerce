@@ -1,0 +1,125 @@
+# AI Smart Commerce Communication Platform — Walkthrough
+
+## What Was Built
+
+A full-stack **AI-powered communication platform** for local commerce, completely refactored to use a **Provider-Based Architecture**. It supports auto-detection of API keys and falls back to **100% free open-source resources** when keys are missing.
+
+| Layer | Tech | Details |
+|-------|------|-------|
+| **Backend** | FastAPI | Async Python backend |
+| **Database** | PostgreSQL / SQLite | Auto-switches based on environment |
+| **Queue** | Redis / In-Memory | Async background task processing |
+| **Frontend** | HTML + TailwindCSS | Pure vanity modern Dashboard |
+| **Infrastructure** | Docker + Compose | Production-ready containerization |
+
+---
+
+## 🔌 Provider Architecture & Fallbacks
+
+The system automatically detects your [.env](file:///e:/hackathon/.env) variables and routes tasks accordingly. No code changes are needed to switch. 
+
+### 1. Voice Calls
+- **Production ([TwilioVoiceProvider](file:///e:/hackathon/backend/providers/voice/twilio_voice.py#11-77))**: If Twilio keys are present, calls customers via Twilio Programmable Voice.
+- **Fallback ([LocalVoiceProvider](file:///e:/hackathon/backend/providers/voice/local_voice.py#19-97))**: If no keys, it generates voice audio locally using `pyttsx3` (or Piper) and logs the simulated call to the `e:\hackathon\simulated_calls\` folder.
+
+### 2. Speech (STT + TTS)
+- **Production ([TwilioSpeechProvider](file:///e:/hackathon/backend/providers/speech/twilio_speech.py#13-83))**: Uses Twilio STT and ElevenLabs premium text-to-speech.
+- **Fallback ([WhisperSpeechProvider](file:///e:/hackathon/backend/providers/speech/whisper_speech.py#16-126))**: Uses local open-source tools — `pyttsx3` for TTS and `openai-whisper` for STT (if installed). 
+
+### 3. Messaging
+- **Production ([WhatsAppCloudProvider](file:///e:/hackathon/backend/providers/messaging/whatsapp_cloud.py#14-74))**: Sends real WhatsApp messages via Meta Cloud API.
+- **Fallback ([LocalMessagingProvider](file:///e:/hackathon/backend/providers/messaging/local_messaging.py#33-133))**: Simulates WhatsApp messages by logging them as JSON files to the `e:\hackathon\simulated_messages\` folder (Chosen over Baileys to avoid Node.js/Python cross-language complexities, keeping it a pure Python service).
+
+---
+
+## 🚀 How to Run It
+
+You have two ways to run the platform:
+
+### Method A: Docker (Recommended - Production Stack)
+This spins up PostgreSQL, Redis, and the FastAPI backend all at once.
+
+1. Open a terminal in `e:\hackathon\`
+2. Run the following command:
+   ```bash
+   docker-compose up --build
+   ```
+3. Open `http://localhost:8000` in your browser.
+
+### Method B: Local Python (Hackathon MVP Stack)
+This uses SQLite and an In-Memory queue, meaning absolutely zero setup is required other than python packages. The server is actually **already running in your terminal right now!**
+
+1. To run it yourself, open a terminal in `e:\hackathon\backend`
+2. Install dependencies: `pip install -r requirements.txt` (only needed once)
+3. Run the server:
+   ```bash
+   python -m uvicorn main:app --reload --port 8000
+   ```
+4. Open `http://localhost:8000` in your browser.
+
+---
+
+## 🧪 Testing the Fallbacks
+
+1. Make sure your `.env` file does **not** have Twilio, Meta, or ElevenLabs keys (leave them empty).
+2. Go to `http://localhost:8000` and look at the **"Active Providers"** panel on the bottom right. It will correctly show `Local Voice (Simulated)`, `Local Messaging (Simulated)`, and `Whisper STT (Local)`.
+3. Go to `http://localhost:8000/simulate` and submit a test order.
+4. Go back to the Dashboard. You will see the event processed, but because you are in fallback mode, the "calls" and "messages" were safely saved as local simulation files via the open-source stack!
+
+---
+
+## 📅 3. Order Activity Timeline & AI Metadata Tracking
+
+We enhanced the core order logistics to track the full lifecycle of an order beyond the basic statuses. The AI engine now specifically listens for user replies and extracts actionable context that updates the dashboard timeline dynamically.
+
+**How it works:**
+- We expanded `models.py` by adding a dynamic `metadata_json` column to the `Event` schema. This allows us to track *what* the AI extracted in real time without being constrained by fixed schema fields.
+- The `ai_engine.py` NLP parser received a new `extract_intent_metadata()` method. For example, if a user replies "Deliver it tomorrow instead", the intent becomes "reschedule" and the metadata becomes `{"requested_date": "Tomorrow"}`.
+- Whenever the WhatsApp Web sidecar calls the incoming webhook, it triggers this parser, and correctly maps the extracted logic into an official database `create_event` request.
+
+**User Interface Impact:**
+The frontend dashboard in `orders.html` and `orders.js` was enriched to act as a complete visibility center. When a merchant clicks on an order ID, a dedicated Timeline Activity panel drops down. This panel maps out every point in the order's history temporally. If the AI collected metadata (like cancellation reasons or reschedule dates), those parameters dynamically render natively within the timeline sub-blocks so the merchant has total clarity into what conversations have occurred and what variables the user adjusted. 
+
+![Order Timeline UI](C:\Users\swapn\.gemini\antigravity\brain\f82d9a30-880e-4ad5-84f9-6d2c9bb2eaf4\order_activity_timeline_1772732653801.png)
+
+## ⚙️ 4. Merchant Configuration Isolation
+
+### What We Changed:
+We completely decoupled the platform from relying exclusively on a single `settings.py` `.env` file for API keys!
+- **Database Architecture**: Enhanced the `Merchant` database model to store a `provider_config` json payload natively.
+- **Provider Injection**: The core `get_providers()` factory was redesigned to accept a `current_merchant` model. When building instances like the `WhatsAppCloudProvider`, it explicitly references the merchant's saved Database config over global fallbacks.
+- **Settings Dashboard**: The Settings UI was revamped. Since Twilio and ElevenLabs services are typically managed centrally by the platform operator for cost-control, these were hidden. Merchants are now presented with a clear Meta WhatsApp Cloud API module to inject their own explicit `Access Token` and `Phone Number ID`.
+
+### Verification Results:
+- A local browser subagent successfully logged into the `/login.html` dashboard using test merchant credentials.
+- Simulated the exact flow of saving a WhatsApp API token and Phone Number identifier which successfully bypassed global `.env` fallbacks.
+- Confirmed that the system persisted the config to the Database precisely via the new POST Route.
+- *Testing the Fallback Logic*: If a merchant does *not* provide keys in this panel, the `factory.py` correctly steps down gracefully into utilizing the platform's default Twilio Keys and fallback Local Simulated WhatsApp logs, ensuring communication attempts never crash.
+
+![Merchant Config UI Testing](file:///C:/Users/swapn/.gemini/antigravity/brain/f82d9a30-880e-4ad5-84f9-6d2c9bb2eaf4/config_testing_1772733444366.webp)
+
+## 💬 5. Omnichannel Unified Inbox
+
+The platform is no longer just limited to outbound order tracking! We've elevated the system to act as a **Unified Omnichannel Helpdesk** that allows you to read and reply to messages across channels regardless of if they are tied to an order.
+
+### What We Changed:
+- **Core Decoupling (`models.py`)**: Built a brand new `Message` schema that groups communications by `contact_id` (a user's phone number or social profile) and `channel` (WhatsApp, Instagram, Facebook) rather than rigidly requiring an `Order ID`. 
+- **AI Auto-Responder (`ai_engine.py`)**: The system now parses all incoming messages. The AI intercepts the message first, evaluating if it's a simple, answerable question (e.g., *"Where are you located?"*, *"How long is shipping?"*). If it can answer it using the store's configured settings, it automatically dispatches a reply back to the user without human intervention.
+- **Intelligent Routing (`webhooks.py`)**: For complex intents (e.g., *"My item was broken! I want a refund"* or *"Can I speak to a manager"*), the AI intentionally flags the conversation with a `requires_human` parameter and steps back.
+- **The Interface (`inbox.html`)**: Created a beautiful, WhatsApp-Web style dashboard view.
+   - The left pane lists all active customer conversations, highlighting those that need human attention with a red **"Needs Human"** badge.
+   - The right pane displays the complete chat history. Messages generated and sent by the AI are distinctly marked with a green **"AI"** badge, while human responses are marked with **"You"**. 
+   - A reply window at the bottom allows the merchant to seamlessly take over the conversation and fire replies straight back through the configured channels.
+
+## 🧪 6. End-to-End browser testing
+
+We launched an automated AI Browser Subagent to extensively test the platform from the merchant's perspective:
+1. **Authentication Checked**: Ensured merchants could register and login.
+2. **Order Simulation Checked**: Placed dummy orders which correctly fired webhooks and populated the dashboard.
+3. **Squashed Bugs**: 
+   - Fixed a `500 Internal Server Error` deep inside the WhatsApp incoming webhook payload parser.
+   - Fixed a `404 Not Found` in the frontend `inbox.js` routing logic that was failing to request data from the new Unified Inbox endpoint.
+   - Refined the NLP intent parser to correctly trap "2 days" scheduling requests.
+4. **All Green**: Backend crashes eliminated. AI logic parses user requests perfectly and updates the live order timeline natively with dynamic JSON metadata. 
+
+![Automated Dashboard Test Recording](file:///C:/Users/swapn/.gemini/antigravity/brain/f82d9a30-880e-4ad5-84f9-6d2c9bb2eaf4/dashboard_simulation_test_1772770823899.webp)

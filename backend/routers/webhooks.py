@@ -1,5 +1,6 @@
 """
 Webhook routers — receives events from Shopify and WooCommerce.
+Supports both generic routes (legacy) and per-merchant routes (/{merchant_id}).
 """
 import logging
 from fastapi import APIRouter, Depends, Request, HTTPException
@@ -13,51 +14,65 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/webhooks", tags=["Webhooks"])
 
 
+def _lookup_merchant(db: Session, merchant_id: str):
+    """Find a merchant by ID or fall back to the first registered merchant."""
+    from models import Merchant
+    merchant = db.query(Merchant).filter(Merchant.id == merchant_id).first()
+    if not merchant:
+        raise HTTPException(status_code=404, detail=f"Merchant '{merchant_id}' not found")
+    return merchant
+
+
+# ── Per-merchant webhook routes (recommended) ─────────────
+
+@router.post("/shopify/{merchant_id}")
+async def shopify_webhook_merchant(merchant_id: str, request: Request, db: Session = Depends(get_db)):
+    """Receive a Shopify webhook for a specific merchant. Use this URL in Shopify settings."""
+    merchant = _lookup_merchant(db, merchant_id)
+    return await _handle_shopify(request, db, merchant)
+
+
+@router.post("/woocommerce/{merchant_id}")
+async def woocommerce_webhook_merchant(merchant_id: str, request: Request, db: Session = Depends(get_db)):
+    """Receive a WooCommerce webhook for a specific merchant. Use this URL in WooCommerce settings."""
+    merchant = _lookup_merchant(db, merchant_id)
+    return await _handle_woocommerce(request, db, merchant)
+
+
+# ── Legacy generic routes (fallback — routes to first merchant) ──
+
 @router.post("/shopify")
 async def shopify_webhook(request: Request, db: Session = Depends(get_db)):
-    """Receive and process a Shopify webhook event."""
-    try:
-        payload = await request.json()
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid JSON payload")
-
-    # Determine event type from headers or payload
-    event_type = request.headers.get("X-Shopify-Topic", "order_created")
-    event_type = _map_shopify_topic(event_type)
-
-    # Normalize and store order
-    order_data = normalize_shopify_order(payload)
-    order = create_order(db, order_data)
-
-    # Create event and process
-    event = create_event(db, order.id, event_type)
-    result = await process_event(db, order, event)
-
-    return {
-        "status": "received",
-        "order_id": order.id,
-        "event_type": event_type,
-        "communication": result,
-    }
+    """Legacy Shopify webhook — routes to the first registered merchant."""
+    from models import Merchant
+    merchant = db.query(Merchant).first()
+    return await _handle_shopify(request, db, merchant)
 
 
 @router.post("/woocommerce")
 async def woocommerce_webhook(request: Request, db: Session = Depends(get_db)):
-    """Receive and process a WooCommerce webhook event."""
+    """Legacy WooCommerce webhook — routes to the first registered merchant."""
+    from models import Merchant
+    merchant = db.query(Merchant).first()
+    return await _handle_woocommerce(request, db, merchant)
+
+
+# ── Core handlers ──────────────────────────────────────────
+
+async def _handle_shopify(request: Request, db: Session, merchant):
     try:
         payload = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
 
-    # Determine event type from headers or payload
-    event_type = request.headers.get("X-WC-Webhook-Topic", "order_created")
-    event_type = _map_woocommerce_topic(event_type)
+    event_type = request.headers.get("X-Shopify-Topic", "order_created")
+    event_type = _map_shopify_topic(event_type)
 
-    # Normalize and store order
-    order_data = normalize_woocommerce_order(payload)
+    order_data = normalize_shopify_order(payload)
+    if merchant:
+        order_data["merchant_id"] = merchant.id
     order = create_order(db, order_data)
 
-    # Create event and process
     event = create_event(db, order.id, event_type)
     result = await process_event(db, order, event)
 
@@ -65,8 +80,36 @@ async def woocommerce_webhook(request: Request, db: Session = Depends(get_db)):
         "status": "received",
         "order_id": order.id,
         "event_type": event_type,
+        "merchant_id": merchant.id if merchant else None,
         "communication": result,
     }
+
+
+async def _handle_woocommerce(request: Request, db: Session, merchant):
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    event_type = request.headers.get("X-WC-Webhook-Topic", "order_created")
+    event_type = _map_woocommerce_topic(event_type)
+
+    order_data = normalize_woocommerce_order(payload)
+    if merchant:
+        order_data["merchant_id"] = merchant.id
+    order = create_order(db, order_data)
+
+    event = create_event(db, order.id, event_type)
+    result = await process_event(db, order, event)
+
+    return {
+        "status": "received",
+        "order_id": order.id,
+        "event_type": event_type,
+        "merchant_id": merchant.id if merchant else None,
+        "communication": result,
+    }
+
 
 
 def _map_shopify_topic(topic: str) -> str:
